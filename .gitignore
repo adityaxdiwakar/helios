@@ -16,3 +16,5 @@
 #
 # # Helios specific gitignores
 repo/
+prices.db
+config.toml
