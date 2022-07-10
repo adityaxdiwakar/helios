@@ -11,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
 
 var (
@@ -69,7 +70,6 @@ func main() {
 	} else if errTax != nil {
 		bail(errTax, 1)
 	}
-	totalBasisValue := basisIraOutput + basisTaxOutput
 
 	// 2> Generate quotes using tdaLedgerUpdate to prices.db
 	updatePriceDb()
@@ -84,15 +84,34 @@ func main() {
 	} else if errTax != nil {
 		bail(errTax, 1)
 	}
-	totalMarketValue := marketIraOutput + marketTaxOutput
 
 	// Calculate some profit fields
 	gainsIra := marketIraOutput - basisIraOutput
 	gainsTax := marketTaxOutput - basisTaxOutput
-	gainsTotal := totalMarketValue - totalBasisValue
-	_, _, _ = gainsIra, gainsTax, gainsTotal
+	_, _ = gainsIra, gainsTax
 
 	// 4> Send data to local InfluxDB
+	client := influxdb2.NewClient("http://localhost:8086", "")
+	writeApi := client.WriteAPI("primary", "primary")
+
+	p := influxdb2.NewPointWithMeasurement("balance").
+		AddTag("account", "ira").
+		AddField("basis", basisIraOutput).
+		AddField("market", marketIraOutput).
+		AddField("gain", gainsIra)
+	writeApi.WritePoint(p)
+
+	p = influxdb2.NewPointWithMeasurement("balance").
+		AddTag("account", "tax").
+		AddField("basis", basisTaxOutput).
+		AddField("market", marketTaxOutput).
+		AddField("gain", gainsTax)
+	writeApi.WritePoint(p)
+
+	// Force all unwritten data to be sent
+	writeApi.Flush()
+	// Ensures background processes finishes
+	client.Close()
 }
 
 func updatePriceDb() {
