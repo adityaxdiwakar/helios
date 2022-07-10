@@ -31,12 +31,6 @@ func main() {
 
 // sets up the ./repo/ directory to have an up to date records.ledger file
 func setupRepo() {
-	// create directory for repo
-	err := os.MkdirAll("repo", 0750)
-	if err != nil {
-		bail(err, 1)
-	}
-
 	auth := http.BasicAuth{
 		Username: os.Getenv("USERNAME"),
 		Password: os.Getenv("TOKEN"),
@@ -62,11 +56,12 @@ func setupRepo() {
 		bail(err, 1)
 	}
 
-	pullOptions := git.PullOptions{
+	err = w.Pull(&git.PullOptions{
 		ReferenceName: plumbing.ReferenceName("refs/heads/master"),
 		Auth:          &auth,
-	}
-	if err := w.Pull(&pullOptions); err != nil {
+	})
+
+	if err != nil && err != git.NoErrAlreadyUpToDate {
 		bail(err, 1)
 	}
 }
