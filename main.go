@@ -18,6 +18,7 @@ var (
 	ledgerBinary string
 	username     string
 	authToken    string
+	influxToken  string
 )
 
 type Cmd struct {
@@ -42,6 +43,7 @@ func init() {
 	flag.StringVar(&ledgerBinary, "b", "ledger", "Ledger Binary")
 	flag.StringVar(&username, "u", "", "Username")
 	flag.StringVar(&authToken, "a", "", "Auth Token")
+	flag.StringVar(&influxToken, "ia", "", "Influx Auth Token")
 	flag.Parse()
 
 	if username == "" || authToken == "" {
@@ -91,7 +93,7 @@ func main() {
 	_, _ = gainsIra, gainsTax
 
 	// 4> Send data to local InfluxDB
-	client := influxdb2.NewClient("http://localhost:8086", "")
+	client := influxdb2.NewClient("http://localhost:8086", influxToken)
 	writeApi := client.WriteAPI("primary", "primary")
 
 	p := influxdb2.NewPointWithMeasurement("balance").
