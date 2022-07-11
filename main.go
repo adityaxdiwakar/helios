@@ -90,7 +90,6 @@ func main() {
 	// Calculate some profit fields
 	gainsIra := marketIraOutput - basisIraOutput
 	gainsTax := marketTaxOutput - basisTaxOutput
-	_, _ = gainsIra, gainsTax
 
 	// 4> Send data to local InfluxDB
 	client := influxdb2.NewClient("http://localhost:8086", influxToken)
