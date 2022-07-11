@@ -46,7 +46,7 @@ func init() {
 	flag.StringVar(&influxToken, "ia", "", "Influx Auth Token")
 	flag.Parse()
 
-	if username == "" || authToken == "" {
+	if username == "" || authToken == "" || influxToken == "" {
 		bail(fmt.Errorf("must provide username and auth token"), 1)
 	}
 }
