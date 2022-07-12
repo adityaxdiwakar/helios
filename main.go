@@ -123,7 +123,11 @@ func main() {
 }
 
 func updatePriceDb() {
-	cmd := exec.Command("tdaLedgerUpdate", "-f", "repo/records.ldg", "-p", "prices.db", "-b", "ledger", "-afile", "token")
+	cmd := exec.Command("tdaLedgerUpdate",
+		"-f", "repo/records.ldg",
+		"-p", "prices.db",
+		"-b", "ledger",
+		"-afile", "token")
 	if out, err := cmd.Output(); err != nil {
 		bail(fmt.Errorf("%s %w", string(out), err), 1)
 	}
