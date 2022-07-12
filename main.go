@@ -19,6 +19,8 @@ var (
 	username     string
 	authToken    string
 	influxToken  string
+	consumerKey  string
+	host         string
 )
 
 type Cmd struct {
@@ -116,9 +118,9 @@ func main() {
 }
 
 func updatePriceDb() {
-	cmd := exec.Command("tdaLedgerUpdate", "-f", "repo/records.ldg", "-p", "prices.db", "-b", "ledger")
-	if _, err := cmd.Output(); err != nil {
-		bail(err, 1)
+	cmd := exec.Command("tdaLedgerUpdate", "-f", "repo/records.ldg", "-p", "prices.db", "-b", "ledger", "-afile", "token")
+	if out, err := cmd.Output(); err != nil {
+		bail(fmt.Errorf("%s %w", string(out), err), 1)
 	}
 }
 
