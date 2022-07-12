@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -76,7 +77,10 @@ func main() {
 	}
 
 	// 2> Generate quotes using tdaLedgerUpdate to prices.db
-	updatePriceDb()
+	hr, _, _ := time.Now().Clock()
+	if hr > 1 && hr < 17 {
+		updatePriceDb()
+	}
 
 	// 3> Read current market value
 	// .... ldgr --price-db prices.db -V bal Asset:Investments:Fidelity
