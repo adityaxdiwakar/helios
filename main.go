@@ -78,6 +78,7 @@ func main() {
 
 	// 2> Generate quotes using tdaLedgerUpdate to prices.db
 	hr, _, _ := time.Now().Clock()
+	// PST hours
 	if hr > 1 && hr < 17 {
 		updatePriceDb()
 	}
