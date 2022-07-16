@@ -77,9 +77,7 @@ func main() {
 	}
 
 	// 2> Generate quotes using tdaLedgerUpdate to prices.db
-	hr, _, _ := time.Now().Clock()
-	// PST hours
-	if hr > 1 && hr < 17 {
+	if isMarketHours() {
 		updatePriceDb()
 	}
 
@@ -120,6 +118,16 @@ func main() {
 	writeApi.Flush()
 	// Ensures background processes finishes
 	client.Close()
+}
+
+func isMarketHours() bool {
+	// PST hours
+	switch time.Now().UTC().Weekday() {
+	case time.Saturday, time.Sunday:
+		hr, _, _ := time.Now().Clock()
+		return hr > 1 && hr < 17
+	}
+	return false
 }
 
 func updatePriceDb() {
