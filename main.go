@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -20,8 +21,11 @@ var (
 	username     string
 	authToken    string
 	influxToken  string
+	sentryToken  string
 	consumerKey  string
 	host         string
+
+	sentryEnabled = true
 )
 
 type Cmd struct {
@@ -38,6 +42,13 @@ func (c *Cmd) New(newargs ...string) *exec.Cmd {
 }
 
 func bail(err error, code int) {
+
+	if sentryEnabled {
+		// cause alert in sentry
+		sentry.CaptureMessage(err.Error())
+		sentry.Flush(2 * time.Second)
+	}
+
 	fmt.Println(err)
 	os.Exit(code)
 }
@@ -47,10 +58,28 @@ func init() {
 	flag.StringVar(&username, "u", "", "Username")
 	flag.StringVar(&authToken, "a", "", "Auth Token")
 	flag.StringVar(&influxToken, "ia", "", "Influx Auth Token")
+	flag.StringVar(&sentryToken, "st", "", "Sentry Token")
 	flag.Parse()
 
 	if username == "" || authToken == "" || influxToken == "" {
 		bail(fmt.Errorf("must provide username and auth token"), 1)
+	}
+
+	if sentryToken == "" {
+		sentryEnabled = false
+	}
+
+	if sentryEnabled {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn: sentryToken,
+			// Set TracesSampleRate to 1.0 to capture 100%
+			// of transactions for performance monitoring.
+			// We recommend adjusting this value in production,
+			TracesSampleRate: 1.0,
+		})
+		if err != nil {
+			bail(fmt.Errorf("sentry.Init: %w", err), 1)
+		}
 	}
 }
 
@@ -61,7 +90,6 @@ const (
 
 func main() {
 	c := NewBase(ledgerBinary)
-
 	// perform set up
 	setupRepo()
 
