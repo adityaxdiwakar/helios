@@ -209,9 +209,8 @@ func setupRepo() {
 
 func returnLineSummary(cmd *exec.Cmd) (float64, error) {
 	out, err := cmd.CombinedOutput()
-	err = fmt.Errorf("%s: %w", out, err)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%s: %w", out, err)
 	}
 	lines := strings.Split(string(out), "\n")
 	if len(lines) < 4 {
