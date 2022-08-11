@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -86,6 +87,7 @@ func init() {
 const (
 	IraAccount = "Assets:Investments:IRA"
 	TaxAccount = "Assets:Investments:Fidelity"
+	Accounts   = "Assets:Investments"
 )
 
 func main() {
@@ -128,6 +130,31 @@ func main() {
 	client := influxdb2.NewClient("http://localhost:8086", influxToken)
 	writeApi := client.WriteAPI("primary", "primary")
 
+	// 5> Get cost basis data for each security
+	costBasisMap, err := getCostBasis(c.New(Accounts, "--average-lot-prices"))
+	if err == nil {
+		for ticker, basis := range *costBasisMap {
+			value, err := returnSingleLine(
+				c.New(
+					"--price-db",
+					"prices.db",
+					"-V",
+					fmt.Sprintf("Allocation:Equities:%s", strings.ToUpper(ticker)),
+				),
+			)
+			if err != nil {
+				continue
+			}
+
+			p := influxdb2.NewPointWithMeasurement("balance").
+				AddTag("account", ticker).
+				AddField("basis", basis).
+				AddField("market", value).
+				AddField("gain-percent", (value-basis)/basis)
+			writeApi.WritePoint(p)
+		}
+	}
+
 	p := influxdb2.NewPointWithMeasurement("balance").
 		AddTag("account", "ira").
 		AddField("basis", basisIraOutput).
@@ -146,6 +173,45 @@ func main() {
 	writeApi.Flush()
 	// Ensures background processes finishes
 	client.Close()
+}
+
+func getCostBasis(cmd *exec.Cmd) (*map[string]float64, error) {
+	res := map[string]float64{}
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", out, err)
+	}
+
+	costBody := strings.Split(string(out), "------\n")
+	if len(costBody) < 2 {
+		return nil, errors.New("could not parse cost basis command output")
+	}
+	lines := strings.Split(costBody[1], "\n")
+	if len(lines) < 2 {
+		return nil, errors.New("could not parse cost basis command output")
+	}
+	lines = lines[1 : len(lines)-1]
+
+	for _, line := range lines {
+		values := strings.Split(line, " ")
+		if len(values) < 3 {
+			return nil, errors.New("could not parse cost basis command output")
+		}
+		quantity, err := strconv.ParseFloat(values[0], 10)
+		if err != nil {
+			return nil, errors.New("could not parse cost basis command output")
+		}
+		ticker := values[1]
+		basis, err := strconv.ParseFloat(values[2][2:len(values[2])-1], 10)
+		if err != nil {
+			return nil, errors.New("could not parse cost basis command output")
+		}
+
+		res[ticker] = quantity * basis
+	}
+
+	return &res, nil
 }
 
 func isMarketHours() bool {
@@ -205,6 +271,22 @@ func setupRepo() {
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		bail(err, 1)
 	}
+}
+
+func returnSingleLine(cmd *exec.Cmd) (float64, error) {
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", out, err)
+	}
+
+	line := strings.TrimSpace(string(out))
+	line = strings.Split(line, " ")[0][1:]
+	line = strings.ReplaceAll(line, ",", "")
+	s, err := strconv.ParseFloat(line, 10)
+	if err != nil {
+		return 0, err
+	}
+	return s, nil
 }
 
 func returnLineSummary(cmd *exec.Cmd) (float64, error) {
