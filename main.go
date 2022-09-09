@@ -24,6 +24,7 @@ var (
 	influxToken  string
 	sentryToken  string
 	consumerKey  string
+	influxHost   string
 	host         string
 
 	sentryEnabled = true
@@ -58,6 +59,7 @@ func init() {
 	flag.StringVar(&ledgerBinary, "b", "ledger", "Ledger Binary")
 	flag.StringVar(&username, "u", "", "Username")
 	flag.StringVar(&authToken, "a", "", "Auth Token")
+	flag.StringVar(&influxHost, "ih", "", "Influx Host")
 	flag.StringVar(&influxToken, "ia", "", "Influx Auth Token")
 	flag.StringVar(&sentryToken, "st", "", "Sentry Token")
 	flag.Parse()
@@ -127,7 +129,7 @@ func main() {
 	gainsTax := marketTaxOutput - basisTaxOutput
 
 	// 4> Send data to local InfluxDB
-	client := influxdb2.NewClient("http://localhost:8086", influxToken)
+	client := influxdb2.NewClient(influxHost, influxToken)
 	writeApi := client.WriteAPI("primary", "primary")
 
 	// 5> Get cost basis data for each security
