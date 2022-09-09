@@ -221,8 +221,8 @@ func isMarketHours() bool {
 	case time.Saturday, time.Sunday:
 	default:
 		hr, _, _ := time.Now().Clock()
-		// PST hours
-		return hr > 1 && hr < 17
+		// UTC hours
+		return hr > 8
 	}
 	return false
 }
